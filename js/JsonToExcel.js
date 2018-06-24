@@ -146,7 +146,7 @@ function JsonToExcel(filename , dataList, SheetName, Author) {
     var ext = m ? m[0] : "";
 
     if (ext != ".xls" && ext != ".xlsx") {
-        ext = ".xlsx";
+        ext = ".xls";
         filename += ext;
     }
 
