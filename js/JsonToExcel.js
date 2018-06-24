@@ -39,7 +39,7 @@ if (!saveAs) {
 
  
 //将Json数据导出Excel
-function JsonToExcel(filename, dataList) {
+function JsonToExcel(filename , dataList, SheetName, Author) {
     dataList = Array.isArray(dataList) ? dataList : [dataList];
     var charSet = document.characterSet;
     var template = function (s, c) {
@@ -47,19 +47,78 @@ function JsonToExcel(filename, dataList) {
             return c[p];
         });
     };
-    
-    var tmpl = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
-    tmpl += '<head><meta charset="' + charSet + '" /><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>';
-    tmpl += '{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->';
-    tmpl += '<style type="text/css">table,th,td{ font-family:"宋体";}</style>';
-    tmpl += '</head><body><table>{table}</table></body></html>';
+    //获取文件扩展名
+    var getFileExtension = function(fileName) {        
+        var _fileName = (fileName + "").toLowerCase();
+        var m = _fileName.match(/([.]{1}\w+)$/g);
+        return m ? m[0] : "";
+    }
+
+    //模版
+    {
+        var tmpl = [];
+        tmpl.push('<html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">');
+        tmpl.push('<head>');
+        tmpl.push('<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>');
+        tmpl.push('<meta name="ProgId" content="Excel.Sheet"/><meta name="Generator" content="WPS Office ET"/>');
+        //文件信息
+        tmpl.push('<!--[if gte mso 9]><xml>');
+        tmpl.push('<o:DocumentProperties>');
+        tmpl.push('<o:Author>{Author}</o:Author>');
+        tmpl.push('<o:Created>{CreatedTime}</o:Created>');
+        //tmpl.push('<o:LastAuthor>迭名</o:LastAuthor>');
+        //tmpl.push('<o:LastSaved>2018-06-24T22:04:35</o:LastSaved>');
+        tmpl.push('</o:DocumentProperties>');
+        tmpl.push('<o:CustomDocumentProperties><o:KSOProductBuildVer dt:dt="string">2052-10.1.0.7400</o:KSOProductBuildVer></o:CustomDocumentProperties>');
+        tmpl.push('</xml><![endif]-->');
+
+        //样式
+        tmpl.push('<style  type="text/css" >');
+        tmpl.push('table,th,td{ font-family:"宋体";}');
+        tmpl.push('</style>');
+
+        //
+        tmpl.push('<!--[if gte mso 9]> <xml>');
+        tmpl.push('<x:ExcelWorkbook>');
+        tmpl.push('<x:ExcelWorksheets>');
+        tmpl.push('<x:ExcelWorksheet>');
+        tmpl.push('<x:Name>{SheetName}</x:Name>');
+        tmpl.push('<x:WorksheetOptions>');
+        tmpl.push('<x:DefaultRowHeight>270</x:DefaultRowHeight>');
+        tmpl.push('<x:Selected/>');
+        tmpl.push('<x:Panes>');
+        tmpl.push('<x:Pane>');
+        tmpl.push('<x:Number>3</x:Number>');
+        tmpl.push('<x:ActiveCol>0</x:ActiveCol>');
+        tmpl.push('<x:ActiveRow>0</x:ActiveRow>');
+        tmpl.push('</x:Pane>');
+        tmpl.push('</x:Panes>');
+        tmpl.push('<x:ProtectContents>False</x:ProtectContents>');
+        tmpl.push('<x:ProtectObjects>False</x:ProtectObjects>');
+        tmpl.push('<x:ProtectScenarios>False</x:ProtectScenarios>');
+        tmpl.push('<x:PageBreakZoom>100</x:PageBreakZoom>');
+        tmpl.push('<x:Print><x:PaperSizeIndex>9</x:PaperSizeIndex></x:Print>');
+        tmpl.push('</x:WorksheetOptions>');
+        tmpl.push('</x:ExcelWorksheet>');
+        tmpl.push('</x:ExcelWorksheets>');
+        tmpl.push('<x:ProtectStructure>False</x:ProtectStructure>');
+        tmpl.push('<x:ProtectWindows>False</x:ProtectWindows>');
+        tmpl.push('<x:SelectedSheets>0</x:SelectedSheets>');
+        tmpl.push('<x:WindowHeight>12630</x:WindowHeight>');
+        tmpl.push('<x:WindowWidth>28695</x:WindowWidth>');
+        tmpl.push('</x:ExcelWorkbook>');
+        tmpl.push('</xml><![endif]-->');
+        tmpl.push('</head>');
+        tmpl.push('<body link="blue" vlink="purple" ><table border="0" cellpadding="0" cellspacing="0" style="border-collapse:collapse;table-layout:fixed;" >{table}</table></body></html>');
+
+    }
 
     var tHead = [], tBody = [];
     for (var ind = 0; ind < dataList.length; ind++) {
         if (tHead.length == 0) {
             tHead.push('<tr>');
             for (var name in dataList[ind]) {
-                tHead.push('<th>' + name + '</th>');
+                tHead.push('<td>' + name + '</td>');
             }
             tHead.push('</tr>');
         }
@@ -70,20 +129,30 @@ function JsonToExcel(filename, dataList) {
             if (value === undefined || value === "" || value === null) {
                 value = "";
             }
-
             tBody.push('<td>' + value + '</td>');
         }
         tBody.push('</tr>');
     }
-    var data = template(tmpl, { worksheet: 'Sheet1', table: tHead.join("") + tBody.join("") });
+    var data = template(tmpl.join(""), {
+        Author: Author || "kingsoft",
+        CreatedTime: new Date().toISOString(),
+        SheetName: SheetName || 'Sheet1',
+        table: tHead.join("") + tBody.join("")
+    });
 
+    filename = filename + "";
     var extReg = /\.xlsx?$/;
-    filename = filename.replace(extReg, '') + ".xls";
-    //var accept = { ".xls": "application/vnd.ms-excel", ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" };
-    saveAs(new Blob([data], { type: "application/vnd.ms-excel" }), filename);
+    var m = filename.match(extReg);
+    var ext = m ? m[0] : "";
 
-    //var file = new File([data], filename + "." + type, { type: "application/vnd.ms-excel" });
-    //saveAs(file);
+    if (ext != ".xls" && ext != ".xlsx") {
+        ext = ".xlsx";
+        filename += ext;
+    }
+
+    var accept = { ".xls": "application/vnd.ms-excel", ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" };
+    saveAs(new Blob([data], { type: accept[ext] }), filename);
+
 }
 
 
